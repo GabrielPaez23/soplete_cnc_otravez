@@ -21,12 +21,20 @@ const telemetryStatus = document.getElementById('telemetry-status');
 let animation2DId = null;
 
 // ==========================================
-// VARIABLES GLOBALES VISOR THREE.JS
+// VARIABLES GLOBALES VISOR THREE.JS Y SIMULACIÓN
 // ==========================================
 let scene3D, camera3D, renderer3D, controls3D;
 let loadedModel = null;
 let gridHelper3D = null;
 let axesHelper3D = null;
+
+// Elementos de simulación
+let metalPlate = null;
+let sopleteNozzle = null;
+let sopleteLight = null;
+let sopleteFlame = null;
+let path3DGroup = null;
+let robotWrapper = null;
 
 // Inicialización general al cargar el DOM
 document.addEventListener('DOMContentLoaded', () => {
@@ -53,11 +61,11 @@ function init3DViewport() {
     // Escena con niebla ambiental para profundidad tipo HMI
     scene3D = new THREE.Scene();
     scene3D.background = new THREE.Color(0x09090d);
-    scene3D.fog = new THREE.FogExp2(0x09090d, 0.003);
+    scene3D.fog = new THREE.FogExp2(0x09090d, 0.002);
 
-    // Cámara Perspectiva
+    // Cámara Perspectiva enfocando la placa y robot
     camera3D = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
-    camera3D.position.set(150, 150, 150);
+    camera3D.position.set(90, 80, 90);
 
     // Renderizador WebGL
     renderer3D = new THREE.WebGLRenderer({ antialias: true });
@@ -71,6 +79,7 @@ function init3DViewport() {
     controls3D = new OrbitControls(camera3D, renderer3D.domElement);
     controls3D.enableDamping = true;
     controls3D.dampingFactor = 0.05;
+    controls3D.target.set(25, 5, 0);
 
     // Iluminación Técnica
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -85,7 +94,20 @@ function init3DViewport() {
     dirLight2.position.set(-100, -50, -100);
     scene3D.add(dirLight2);
 
-    // Intentar Cargar el Modelo GLTF/GLB
+    // Rejilla de referencia limpia en el plano del suelo
+    gridHelper3D = new THREE.GridHelper(160, 16, 0x00f0ff, 0x27273a);
+    gridHelper3D.position.y = 0;
+    scene3D.add(gridHelper3D);
+
+    // Wrapper para el brazo robótico (evita inclinaciones no deseadas en X o Z)
+    robotWrapper = new THREE.Group();
+    robotWrapper.position.set(0, 0, 0); // El robot se ancla en el origen
+    scene3D.add(robotWrapper);
+
+    // Cargar los objetos de simulación (placa, soplete móvil, trazo)
+    setupSimulationObjects();
+
+    // Intentar Cargar el Modelo GLTF/GLB del Brazo Robótico
     cargarModeloGLTF(MODEL_PATH);
 
     // Manejo de cambio de tamaño de ventana
@@ -101,45 +123,113 @@ function init3DViewport() {
 }
 
 // ==========================================
-// 2. CARGA DE MODELO Y AUTOAJUSTE DE BOUNDING BOX
+// 2. CARGA DE MODELO Y OBJETOS AUXILIARES
 // ==========================================
+function setupSimulationObjects() {
+    // 1. Crear grupo para las líneas de corte 3D
+    path3DGroup = new THREE.Group();
+    scene3D.add(path3DGroup);
+
+    // 2. Crear la placa metálica (chapa) en frente del robot (Y=-0.8 para evitar solaparse con la grilla Y=0)
+    const plateGeo = new THREE.BoxGeometry(120, 1.5, 120);
+    const plateMat = new THREE.MeshStandardMaterial({
+        color: 0x3a3b46,
+        roughness: 0.4,
+        metalness: 0.7
+    });
+    metalPlate = new THREE.Mesh(plateGeo, plateMat);
+    metalPlate.position.set(45, -0.8, 0); // Desfasado en X para que quede frente al robot
+    scene3D.add(metalPlate);
+
+    // 3. Crear el soplete / boquilla móvil
+    sopleteNozzle = new THREE.Group();
+    
+    // Cuerpo del soplete (cilindro metálico técnico)
+    const bodyGeo = new THREE.CylinderGeometry(2, 1, 15, 12);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x5a5a6a, metalness: 0.9, roughness: 0.1 });
+    const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+    bodyMesh.position.y = 7.5; // Elevarlo para que el extremo inferior esté en Y=0 local
+    sopleteNozzle.add(bodyMesh);
+
+    // Llama/plasma (cono brillante invertido de color magenta)
+    const flameGeo = new THREE.ConeGeometry(1.5, 6, 12);
+    flameGeo.rotateX(Math.PI);
+    sopleteFlame = new THREE.Mesh(flameGeo, new THREE.MeshBasicMaterial({ color: 0xff3366 }));
+    sopleteFlame.position.y = -3;
+    sopleteFlame.visible = false;
+    sopleteNozzle.add(sopleteFlame);
+
+    // Luz de plasma que proyecta reflejos de corte sobre la placa
+    sopleteLight = new THREE.PointLight(0xff3366, 0, 80);
+    sopleteLight.position.y = 0;
+    sopleteNozzle.add(sopleteLight);
+
+    scene3D.add(sopleteNozzle);
+
+    // Posición inicial del soplete (mapeado al origen del plano 2D)
+    actualizarPosicionSoplete(45, 0, false);
+}
+
+function actualizarPosicionSoplete(x, z, activo) {
+    if (sopleteNozzle) {
+        sopleteNozzle.position.set(x, 1.0, z); // Flota 1.0mm sobre la chapa
+    }
+    if (sopleteFlame) {
+        sopleteFlame.visible = activo;
+        if (activo) {
+            const scaleFactor = 0.8 + Math.random() * 0.4;
+            sopleteFlame.scale.set(scaleFactor, scaleFactor, scaleFactor);
+        }
+    }
+    if (sopleteLight) {
+        sopleteLight.intensity = activo ? (3.0 + Math.random() * 1.5) : 0;
+    }
+    
+    // Hacer que el brazo robótico rote sobre su eje Y hacia el soplete
+    if (robotWrapper) {
+        // El robot está en (0,0). Calculamos el ángulo hacia el soplete
+        const angle = Math.atan2(x, z);
+        
+        // Sumamos un desfase para alinear la punta del brazo original con la boquilla
+        robotWrapper.rotation.y = angle + Math.PI / 2; 
+    }
+}
+
 function cargarModeloGLTF(path) {
     const loader = new GLTFLoader();
 
     loader.load(MODEL_PATH, (gltf) => {
         const model = gltf.scene;
+        loadedModel = model; // Guardar referencia global para efectos de color
     
         // 1. Calcular el tamaño real del modelo exportado
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
     
-        // 2. Centrar el punto pivote del modelo en (0, 0, 0)
-        model.position.x += (model.position.x - center.x);
-        model.position.y += (model.position.y - center.y);
-        model.position.z += (model.position.z - center.z);
-    
-        // 3. Reescalar automáticamente si es enorme o microscópico
+        // 2. Reescalar exactamente a la escala original (40)
         const maxDim = Math.max(size.x, size.y, size.z);
+        let scale = 1.0;
         if (maxDim > 0) {
-            const scale = 40 / maxDim; // Lo ajusta para que encaje bien en la rejilla de 50mm
+            scale = 40 / maxDim; // ESCALA ORIGINAL
             model.scale.set(scale, scale, scale);
         }
+        
+        // 3. Centrar en X e Z, y apoyar la base exactamente en Y = 0
+        model.position.x = -center.x * scale;
+        model.position.y = -box.min.y * scale;
+        model.position.z = -center.z * scale;
+        
+        // Añadir el modelo al wrapper (en 0,0,0)
+        robotWrapper.add(model);
+        robotWrapper.rotation.set(0, 0, 0);
     
         // 4. Asegurar materiales visibles
         model.traverse((child) => {
             if (child.isMesh) {
-                // Si el material original tiene problemas de iluminación, forzar uno visible
                 child.material.side = THREE.DoubleSide; 
             }
         });
-    
-        scene3D.add(model);
-    
-        // 5. Reubicar cámara y controles para enfocarlo directamente
-        camera3D.position.set(60, 60, 60);
-        controls3D.target.set(0, 0, 0);
-        controls3D.update();
     
         if (telemetryStatus) {
             telemetryStatus.innerText = 'PROCESO FINALIZADO';
@@ -374,10 +464,25 @@ function animar2D(coordenadas) {
     let t = 0;
     let lineHistory = [];
 
+    // Parámetros de escalado y desplazamiento para mapear a la placa 3D
+    const scale_factor = 0.45;
+    let lastX3d = (coordenadas[0].x - 95) * scale_factor + 45;
+    let lastZ3d = (coordenadas[0].y - 95) * scale_factor;
+
+    // Limpiar rastro de corte 3D previo antes de iniciar
+    if (path3DGroup) {
+        while (path3DGroup.children.length > 0) {
+            const obj = path3DGroup.children[0];
+            path3DGroup.remove(obj);
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) obj.material.dispose();
+        }
+    }
+
     function renderFrame() {
         init2DCanvas();
 
-        // Dibujar líneas procesadas
+        // Dibujar líneas procesadas en 2D
         lineHistory.forEach(line => {
             ctx2D.beginPath();
             ctx2D.moveTo(line.from.cx, line.from.cy);
@@ -405,15 +510,52 @@ function animar2D(coordenadas) {
             ctx2D.lineWidth = 2;
             ctx2D.stroke();
 
-            t += 0.08;
+            // Interpolar en 3D (mapeado sobre la chapa)
+            const x3d_from = (pFrom.x - 95) * scale_factor + 45;
+            const z3d_from = (pFrom.y - 95) * scale_factor;
+            const x3d_to = (pTo.x - 95) * scale_factor + 45;
+            const z3d_to = (pTo.y - 95) * scale_factor;
+
+            const curX3d = x3d_from + (x3d_to - x3d_from) * t;
+            const curZ3d = z3d_from + (z3d_to - z3d_from) * t;
+
+            // Determinar si la llama está activa en este tramo
+            const corteActivo = (pTo.operacion === 'Corte_Lineal' || pTo.operacion === 'Apagar_Soplete');
+
+            // Actualizar posición del soplete físico y rotación del brazo
+            actualizarPosicionSoplete(curX3d, curZ3d, corteActivo);
+
+            // Dibujar trazado dinámico 3D (ligeramente elevado Y=0.2 para evitar parpadeos)
+            const materialColor = corteActivo ? 0xff3366 : 0x00f0ff;
+            const lineMat = new THREE.LineBasicMaterial({
+                color: materialColor,
+                linewidth: corteActivo ? 3 : 1
+            });
+            const lineGeo = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(lastX3d, 0.2, lastZ3d),
+                new THREE.Vector3(curX3d, 0.2, curZ3d)
+            ]);
+            const segment = new THREE.Line(lineGeo, lineMat);
+            path3DGroup.add(segment);
+
+            lastX3d = curX3d;
+            lastZ3d = curZ3d;
+
+            t += 0.05; // Velocidad de animación equilibrada
             if (t >= 1) {
                 lineHistory.push({ from, to, op: pTo.operacion });
                 t = 0;
                 step++;
+                lastX3d = (pTo.x - 95) * scale_factor + 45;
+                lastZ3d = (pTo.y - 95) * scale_factor;
             }
 
             animation2DId = setTimeout(renderFrame, 30);
         } else {
+            // Apagar soplete al concluir el recorrido
+            const finalX3d = (coordenadas[coordenadas.length - 1].x - 95) * scale_factor + 45;
+            const finalZ3d = (coordenadas[coordenadas.length - 1].y - 95) * scale_factor;
+            actualizarPosicionSoplete(finalX3d, finalZ3d, false);
             if (telemetryStatus) {
                 telemetryStatus.innerText = 'PROCESO FINALIZADO';
                 telemetryStatus.style.color = 'var(--accent-blue)';
