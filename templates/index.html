@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMI CNC - Panel de Control e Inspección 3D</title>
+    <title>HMI CNC - Panel de Control e Inspección 3D con Vectorización IA</title>
     <!-- Importación de Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- CSS Estilos -->
@@ -25,12 +25,12 @@
     <!-- Encabezado de la HMI -->
     <header>
         <div class="header-title">
-            <h1>HMI CNC - Sistema de Planificación e Inspección 3D</h1>
-            <p>Controlador Inteligente de Trayectorias y Análisis tridimensional de piezas</p>
+            <h1>HMI CNC - Sistema de Planificación, Vectorización e Inspección 3D</h1>
+            <p>Controlador Inteligente de Trayectorias, Red Neuronal de Vectorización y Análisis Tridimensional</p>
         </div>
         <div class="machine-status">
             <span class="status-dot"></span>
-            <span>SISTEMA ONLINE / CNC & VISOR 3D CONECTADOS</span>
+            <span id="header-status-text">SISTEMA ONLINE / CNC & IA CONECTADOS</span>
         </div>
     </header>
 
@@ -39,80 +39,161 @@
         
         <!-- Columna Izquierda: Panel de Controles -->
         <div class="panel">
-            <div class="panel-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line></svg>
-                Parámetros Operativos
-            </div>
             
-            <form id="hmi-form">
-                <!-- Selector de Figura -->
-                <div class="form-group">
-                    <label for="select-figura">Geometría de Corte</label>
-                    <select id="select-figura" name="figura" required>
-                        <option value="Cuadrado">Cuadrado (Simple)</option>
-                        <option value="Triangulo">Triángulo (Simple)</option>
-                        <option value="Rombo">Rombo (Simple)</option>
-                        <option value="Circulo">Círculo (Curva Compleja)</option>
-                        <option value="Estrella">Estrella (Ángulos Complejos)</option>
-                    </select>
+            <!-- SECCIÓN: MÓDULO DE VECTORIZACIÓN IA -->
+            <div class="panel-section-box">
+                <div class="panel-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-blue);">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    Vectorización por IA
                 </div>
 
-                <!-- Selector de Material -->
+                <!-- Input de Carga de Imagen -->
                 <div class="form-group">
-                    <label for="select-material">Material de la Placa</label>
-                    <select id="select-material" name="material" required>
-                        <option value="acero">Acero al Carbono</option>
-                        <option value="aluminio">Aluminio</option>
-                        <option value="madera">Madera prensada (Laser/Soplete)</option>
-                    </select>
-                </div>
-
-                <!-- Deslizador de Presión -->
-                <div class="form-group">
-                    <div class="slider-container">
-                        <div class="slider-header">
-                            <label style="margin-bottom: 0;">Presión de Gas</label>
-                            <span class="slider-value" id="val-presion">5.0 bar</span>
-                        </div>
-                        <input type="range" id="input-presion" name="presion" min="0.0" max="10.0" step="0.1" value="5.0">
-                        <div class="slider-limits">
-                            <span>0.0 bar (Min)</span>
-                            <span>10.0 bar (Max)</span>
+                    <label for="input-imagen">Cargar Imagen para Vectorizar</label>
+                    <div class="file-upload-wrapper" id="drop-zone">
+                        <input type="file" id="input-imagen" accept="image/*">
+                        <div class="file-upload-content">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-blue);">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <span id="file-name-display">Seleccionar o arrastrar imagen...</span>
+                            <span class="file-hint">PNG, JPG, BMP (Fondo contrastado)</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Botón de Planificación -->
-                <button type="submit" class="btn-planificar">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                    Validar y Planificar
-                </button>
-            </form>
-
-            <!-- Card del Sistema Experto -->
-            <div id="expert-card" class="expert-card">
-                <div class="expert-header" id="expert-title">
-                    <span></span>
+                <!-- Ejemplos rápidos de prueba -->
+                <div class="preset-samples-row">
+                    <span class="preset-label">Muestras rápidas:</span>
+                    <button type="button" class="btn-sample" data-preset="engranaje">Engranaje</button>
+                    <button type="button" class="btn-sample" data-preset="estrella_ninja">Shuriken</button>
+                    <button type="button" class="btn-sample" data-preset="pieza_mecanica">Soporte</button>
                 </div>
-                <div id="expert-message" style="line-height: 1.4;"></div>
-                
-                <div id="expert-params-box" class="expert-params">
-                    <span class="param-label">Potencia Sugerida:</span>
-                    <span class="param-value" id="res-potencia">-</span>
-                    <span class="param-label">Velocidad Corte:</span>
-                    <span class="param-value" id="res-velocidad">-</span>
-                    <span class="param-label">Presión Requerida:</span>
-                    <span class="param-value" id="res-presion-min">-</span>
-                    <div class="complex-badge" id="complex-badge">Ajuste de inercia activo</div>
+
+                <!-- Botón Principal Vectorizar -->
+                <button type="button" id="btn-vectorizar" class="btn-vectorizar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    Vectorizar Imagen
+                </button>
+
+                <!-- Alerta de Confirmación: Figura Lista para Corte -->
+                <div id="vector-status-card" class="vector-status-card">
+                    <div class="vector-status-header">
+                        <span class="status-badge-ready">
+                            <span class="pulse-dot"></span>
+                            Figura lista para corte
+                        </span>
+                    </div>
+                    <div class="vector-status-info" id="vector-status-info">
+                        Coordenadas integradas en el dataset de control CNC.
+                    </div>
+                    <div class="vector-metrics-grid">
+                        <div class="metric-item">
+                            <span class="metric-lbl">Vértices:</span>
+                            <span class="metric-val" id="metric-vertices">0</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-lbl">Dimensiones:</span>
+                            <span class="metric-val" id="metric-dims">0 x 0 mm</span>
+                        </div>
+                    </div>
+                    <!-- Botón para retroalimentación ML -->
+                    <button type="button" id="btn-guardar-dataset" class="btn-vectorizar" style="margin-top: 15px; background: linear-gradient(135deg, #d97706, #b45309); font-size: 13px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        Guardar Muestra en Dataset
+                    </button>
                 </div>
             </div>
+
+            <!-- SECCIÓN: PARÁMETROS OPERATIVOS Y CONTROL -->
+            <div class="panel-section-box" style="margin-top: 18px;">
+                <div class="panel-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line></svg>
+                    Parámetros Operativos
+                </div>
+                
+                <form id="hmi-form">
+                    <!-- Selector de Figura -->
+                    <div class="form-group">
+                        <label for="select-figura">Geometría en Dataset CNC</label>
+                        <select id="select-figura" name="figura" required>
+                            <option value="Cuadrado">Cuadrado (Simple)</option>
+                            <option value="Triangulo">Triángulo (Simple)</option>
+                            <option value="Rombo">Rombo (Simple)</option>
+                            <option value="Circulo">Círculo (Curva Compleja)</option>
+                            <option value="Estrella">Estrella (Ángulos Complejos)</option>
+                        </select>
+                    </div>
+
+                    <!-- Selector de Material -->
+                    <div class="form-group">
+                        <label for="select-material">Material de la Placa</label>
+                        <select id="select-material" name="material" required>
+                            <option value="acero">Acero al Carbono</option>
+                            <option value="aluminio">Aluminio</option>
+                            <option value="madera">Madera prensada (Laser/Soplete)</option>
+                        </select>
+                    </div>
+
+                    <!-- Deslizador de Presión -->
+                    <div class="form-group">
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <label style="margin-bottom: 0;">Presión de Gas</label>
+                                <span class="slider-value" id="val-presion">5.0 bar</span>
+                            </div>
+                            <input type="range" id="input-presion" name="presion" min="0.0" max="10.0" step="0.1" value="5.0">
+                            <div class="slider-limits">
+                                <span>0.0 bar (Min)</span>
+                                <span>10.0 bar (Max)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botón de Planificación y Corte -->
+                    <button type="submit" id="btn-planificar" class="btn-planificar">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        Validar y Planificar
+                    </button>
+                </form>
+
+                <!-- Card del Sistema Experto -->
+                <div id="expert-card" class="expert-card">
+                    <div class="expert-header" id="expert-title">
+                        <span></span>
+                    </div>
+                    <div id="expert-message" style="line-height: 1.4;"></div>
+                    
+                    <div id="expert-params-box" class="expert-params">
+                        <span class="param-label">Potencia Sugerida:</span>
+                        <span class="param-value" id="res-potencia">-</span>
+                        <span class="param-label">Velocidad Corte:</span>
+                        <span class="param-value" id="res-velocidad">-</span>
+                        <span class="param-label">Presión Requerida:</span>
+                        <span class="param-value" id="res-presion-min">-</span>
+                        <div class="complex-badge" id="complex-badge">Ajuste de inercia activo</div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <!-- Columna Central: Canvas 2D + Terminal -->
+        <!-- Columna Central: Canvas Cartesiano 2D + Terminal -->
         <div class="main-content">
             <div class="canvas-container">
-                <div class="view-tag">PLANO 2D (TRAYECTORIA G-CODE)</div>
-                <canvas id="cnc-canvas" width="850" height="380"></canvas>
+                <div class="view-tag" id="canvas-view-tag">PLANO CARTESIANO 2D (SISTEMA DE COORDENADAS CNC)</div>
+                <canvas id="cnc-canvas" width="850" height="420"></canvas>
             </div>
 
             <div class="terminal-panel">
@@ -122,10 +203,11 @@
                         <span class="dot dot-yellow"></span>
                         <span class="dot dot-green"></span>
                     </div>
-                    <span>Registro del Planificador DFS & Comandos G-Code</span>
+                    <span>Registro de Vectorización, Inferencia y Comandos G-Code</span>
                     <span style="color: var(--accent-blue); font-weight: bold;">[TERMINAL]</span>
                 </div>
-                <div class="terminal-body" id="cnc-console">>> HMI CNC cargada. Esperando parámetros operacionales...</div>
+                <div class="terminal-body" id="cnc-console">>> HMI CNC & Sistema de Vectorización cargados.
+>> Seleccione una imagen para vectorizar o una figura existente y presione 'Validar y Planificar'...</div>
             </div>
         </div>
 
@@ -140,7 +222,7 @@
                 <div class="view-tag">VISOR 3D (INTERACTIVO)</div>
                 <!-- Contenedor overlay para datos telemetria 3D -->
                 <div class="overlay-3d-info">
-                    <div>ESCALA EJE (MAX): <span id="telemetry-scale">0 mm</span></div>
+                    <div>ESCALA EJE (MAX): <span id="telemetry-scale">160 mm</span></div>
                     <div>ESTADO 3D: <span id="telemetry-status" style="color: var(--accent-green);">ESPERA</span></div>
                 </div>
             </div>
